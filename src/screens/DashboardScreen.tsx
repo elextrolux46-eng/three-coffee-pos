@@ -9,12 +9,13 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { COLORS } from '../constants/theme';
-import { THREE_COFFEE_PRODUCTS } from '../data/mockData';
 import { usePosStore } from '../store/usePosStore';
 
 export const DashboardScreen: React.FC = () => {
   const setScreen = usePosStore((s) => s.setScreen);
   const currentShift = usePosStore((s) => s.currentShift);
+  const currentUser = usePosStore((s) => s.currentUser);
+  const products = usePosStore((s) => s.products);
   const [activeTab, setActiveTab] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('DAILY');
 
   const totalOmset =
@@ -83,14 +84,38 @@ export const DashboardScreen: React.FC = () => {
 
         <TouchableOpacity
           style={styles.shiftBadge}
-          onPress={() => setScreen('SHIFT_REPORT')}
+          onPress={() => setScreen('PROFILE')}
         >
-          <MaterialCommunityIcons name="clipboard-text-clock" size={16} color={COLORS.cream} />
-          <Text style={styles.shiftBadgeText}>Shift: {currentShift.cashierName}</Text>
+          <MaterialCommunityIcons
+            name={currentUser.role === 'OWNER' ? 'shield-crown' : 'account-tie'}
+            size={16}
+            color={COLORS.cream}
+          />
+          <Text style={styles.shiftBadgeText}>
+            {currentUser.role === 'OWNER' ? 'Owner' : 'Kasir'}: {currentUser.name.split(' ')[0]}
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Prominent Quick CTA: Buka Terminal Kasir POS */}
+        <TouchableOpacity
+          style={styles.heroSellBtn}
+          onPress={handleStartSelling}
+          activeOpacity={0.85}
+        >
+          <View style={styles.heroSellLeft}>
+            <View style={styles.heroIconBox}>
+              <MaterialCommunityIcons name="credit-card-outline" size={26} color="#FFFFFF" />
+            </View>
+            <View>
+              <Text style={styles.heroSellTitle}>BUKA TERMINAL KASIR (LANSKAP)</Text>
+              <Text style={styles.heroSellSub}>Katalog 2 panel, meja, & pesanan aktif</Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons name="arrow-right-circle" size={26} color="#FFFFFF" />
+        </TouchableOpacity>
+
         {/* 3 KPI Cards */}
         <View style={styles.kpiRow}>
           {/* KPI 1 */}
@@ -99,7 +124,7 @@ export const DashboardScreen: React.FC = () => {
               <MaterialCommunityIcons name="coffee" size={18} color={COLORS.caramel} />
               <Text style={styles.kpiLabel}>JML PRODUK</Text>
             </View>
-            <Text style={styles.kpiValue}>{THREE_COFFEE_PRODUCTS.length} Menu</Text>
+            <Text style={styles.kpiValue}>{products.length} Menu</Text>
             <Text style={styles.kpiSub}>2 Kategori Aktif</Text>
           </View>
 
@@ -270,19 +295,6 @@ export const DashboardScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
-
-      {/* Floating Bottom Action */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.startSellBtn}
-          onPress={handleStartSelling}
-          activeOpacity={0.85}
-        >
-          <MaterialCommunityIcons name="storefront-outline" size={22} color={COLORS.white} />
-          <Text style={styles.startSellText}>MULAI MENJUAL (MODE LANSKAP POS)</Text>
-          <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -330,7 +342,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 24,
+  },
+  heroSellBtn: {
+    backgroundColor: '#0284C7', // Matches floating center button color
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  heroSellLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  heroIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroSellTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  heroSellSub: {
+    color: '#E0F2FE',
+    fontSize: 10,
+    marginTop: 2,
   },
   kpiRow: {
     flexDirection: 'row',

@@ -19,6 +19,7 @@ import { CartItem, Product } from '../types';
 
 export const PosOrderLandscapeScreen: React.FC = () => {
   const setScreen = usePosStore((s) => s.setScreen);
+  const products = usePosStore((s) => s.products);
   const selectedCategory = usePosStore((s) => s.selectedCategory);
   const setSelectedCategory = usePosStore((s) => s.setSelectedCategory);
   const searchQuery = usePosStore((s) => s.searchQuery);
@@ -48,7 +49,7 @@ export const PosOrderLandscapeScreen: React.FC = () => {
   };
 
   // Filter products
-  const filteredProducts = THREE_COFFEE_PRODUCTS.filter((item) => {
+  const filteredProducts = products.filter((item) => {
     const matchesCat =
       selectedCategory === 'ALL' || item.category === selectedCategory;
     const matchesSearch =
@@ -168,7 +169,7 @@ export const PosOrderLandscapeScreen: React.FC = () => {
                 selectedCategory === 'ALL' && styles.catBtnTextActive,
               ]}
             >
-              Semua ({THREE_COFFEE_PRODUCTS.length})
+              Semua ({products.length})
             </Text>
           </TouchableOpacity>
 
@@ -185,7 +186,7 @@ export const PosOrderLandscapeScreen: React.FC = () => {
                 selectedCategory === 'BEST_COFFEE' && styles.catBtnTextActive,
               ]}
             >
-              Best Coffee (9)
+              Best Coffee ({products.filter((p) => p.category === 'BEST_COFFEE').length})
             </Text>
           </TouchableOpacity>
 
@@ -202,7 +203,7 @@ export const PosOrderLandscapeScreen: React.FC = () => {
                 selectedCategory === 'NON_COFFEE' && styles.catBtnTextActive,
               ]}
             >
-              Non Coffee (9)
+              Non Coffee ({products.filter((p) => p.category === 'NON_COFFEE').length})
             </Text>
           </TouchableOpacity>
         </View>
@@ -214,56 +215,92 @@ export const PosOrderLandscapeScreen: React.FC = () => {
           numColumns={3}
           contentContainerStyle={styles.gridContent}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View style={styles.productCard}>
-              <View style={styles.cardTopRow}>
-                <View style={styles.skuBadge}>
-                  <Text style={styles.skuText}>{item.sku}</Text>
-                </View>
-                {item.tag && (
-                  <View style={styles.tagBadge}>
-                    <Text style={styles.tagText}>{item.tag}</Text>
+          renderItem={({ item }) => {
+            const isAvailable = item.isAvailable !== false;
+            return (
+              <View style={[styles.productCard, !isAvailable && { opacity: 0.6 }]}>
+                <View style={styles.cardTopRow}>
+                  <View style={styles.skuBadge}>
+                    <Text style={styles.skuText}>{item.sku}</Text>
                   </View>
-                )}
-              </View>
-
-              <TouchableOpacity
-                onPress={() => openCustomizer(item)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.productName} numberOfLines={1}>
-                  {item.name}
-                </Text>
-                <Text style={styles.productDesc} numberOfLines={1}>
-                  {item.description}
-                </Text>
-                <Text style={styles.productPrice}>
-                  Rp{' '}
-                  {item.hasStrengthOption
-                    ? `${item.price / 1000}k / ${item.strongPrice! / 1000}k`
-                    : item.price.toLocaleString('id-ID')}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Action Buttons: Kustom & Quick Add */}
-              <View style={styles.cardActionsRow}>
-                <TouchableOpacity
-                  style={styles.customBtn}
-                  onPress={() => openCustomizer(item)}
-                >
-                  <MaterialCommunityIcons name="tune-variant" size={13} color={COLORS.caramel} />
-                  <Text style={styles.customBtnText}>Kustom</Text>
-                </TouchableOpacity>
+                  {!isAvailable ? (
+                    <View style={[styles.tagBadge, { backgroundColor: '#FEE2E2' }]}>
+                      <Text style={[styles.tagText, { color: '#DC2626' }]}>Habis</Text>
+                    </View>
+                  ) : item.tag ? (
+                    <View style={styles.tagBadge}>
+                      <Text style={styles.tagText}>{item.tag}</Text>
+                    </View>
+                  ) : null}
+                </View>
 
                 <TouchableOpacity
-                  style={styles.addBtn}
-                  onPress={() => handleQuickAdd(item)}
+                  onPress={() => {
+                    if (!isAvailable) {
+                      Alert.alert('Stok Habis', `Menu "${item.name}" sedang tidak tersedia`);
+                      return;
+                    }
+                    openCustomizer(item);
+                  }}
+                  activeOpacity={0.7}
                 >
-                  <MaterialCommunityIcons name="plus" size={16} color={COLORS.white} />
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text style={styles.productDesc} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                  <Text style={styles.productPrice}>
+                    Rp{' '}
+                    {item.hasStrengthOption
+                      ? `${item.price / 1000}k / ${item.strongPrice! / 1000}k`
+                      : item.price.toLocaleString('id-ID')}
+                  </Text>
                 </TouchableOpacity>
+
+                {/* Action Buttons: Kustom & Quick Add */}
+                <View style={styles.cardActionsRow}>
+                  <TouchableOpacity
+                    style={[styles.customBtn, !isAvailable && { backgroundColor: '#F3F4F6' }]}
+                    onPress={() => {
+                      if (!isAvailable) {
+                        Alert.alert('Stok Habis', `Menu "${item.name}" sedang tidak tersedia`);
+                        return;
+                      }
+                      openCustomizer(item);
+                    }}
+                  >
+                    <MaterialCommunityIcons
+                      name="tune-variant"
+                      size={13}
+                      color={isAvailable ? COLORS.caramel : COLORS.muted}
+                    />
+                    <Text
+                      style={[
+                        styles.customBtnText,
+                        !isAvailable && { color: COLORS.muted },
+                      ]}
+                    >
+                      Kustom
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.addBtn, !isAvailable && { backgroundColor: '#E5E7EB' }]}
+                    onPress={() => {
+                      if (!isAvailable) {
+                        Alert.alert('Stok Habis', `Menu "${item.name}" sedang tidak tersedia`);
+                        return;
+                      }
+                      handleQuickAdd(item);
+                    }}
+                  >
+                    <MaterialCommunityIcons name="plus" size={16} color={COLORS.white} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
       </View>
 

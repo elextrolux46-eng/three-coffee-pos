@@ -292,20 +292,20 @@ export const ReceiptScreen: React.FC = () => {
             </View>
           )}
         </View>
+
+        {/* Action Buttons: Kirim WA & Pesanan Baru */}
+        <View style={styles.actionBtnRow}>
+          <TouchableOpacity style={styles.waButton} onPress={handleSendWa}>
+            <MaterialCommunityIcons name="whatsapp" size={20} color="#FFFFFF" />
+            <Text style={styles.waButtonText}>Kirim WA Pelanggan</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.newOrderButton} onPress={handleNewOrder}>
+            <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.newOrderButtonText}>+ Pesanan Baru (Lanskap)</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
-
-      {/* Floating / Sticky Bottom Navigation & Actions */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.waButton} onPress={handleSendWa}>
-          <MaterialCommunityIcons name="whatsapp" size={20} color="#FFFFFF" />
-          <Text style={styles.waButtonText}>Kirim WA Pelanggan</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.newOrderButton} onPress={handleNewOrder}>
-          <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.newOrderButtonText}>+ Pesanan Baru (Lanskap)</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 24,
   },
   cardsRow: {
     flexDirection: 'row',
@@ -569,17 +569,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  actionBtnRow: {
     flexDirection: 'row',
     gap: 12,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
+    marginTop: 16,
+    width: '100%',
+    maxWidth: 680,
+    alignSelf: 'center',
   },
   waButton: {
     flex: 1,

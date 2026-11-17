@@ -4,6 +4,15 @@ export type Temperature = 'ICED' | 'HOT';
 export type StrengthOption = 'NORMAL' | 'STRONG';
 export type SweetnessOption = '100%' | '50%' | '0%';
 
+export type UserRole = 'OWNER' | 'KARYAWAN';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  role: UserRole;
+  pin: string;
+}
+
 export interface Product {
   id: string;
   sku: string;
@@ -14,6 +23,7 @@ export interface Product {
   strongPrice?: number;
   tag?: string;
   description?: string;
+  isAvailable?: boolean;
 }
 
 export interface CartModifier {
@@ -80,8 +90,10 @@ export interface ShiftData {
 
 export type ScreenType =
   | 'DASHBOARD'
+  | 'CUSTOM_MENU'
   | 'POS_ORDER'
   | 'CUSTOMIZER'
   | 'PAYMENT'
   | 'RECEIPT'
-  | 'SHIFT_REPORT';
+  | 'SHIFT_REPORT'
+  | 'PROFILE';

@@ -8,6 +8,8 @@ import {
   Product,
   ScreenType,
   ShiftData,
+  UserProfile,
+  UserRole,
 } from '../types';
 import { THREE_COFFEE_PRODUCTS } from '../data/mockData';
 
@@ -18,6 +20,23 @@ interface PosState {
   cashierName: string;
   selectedCategory: 'ALL' | 'BEST_COFFEE' | 'NON_COFFEE';
   searchQuery: string;
+
+  // Products State
+  products: Product[];
+  addProduct: (newProduct: Omit<Product, 'id'>) => void;
+  updateProduct: (id: string, updates: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
+  toggleProductAvailability: (id: string) => void;
+
+  // User Auth & Role State
+  currentUser: UserProfile;
+  availableUsers: UserProfile[];
+  loginUser: (role: UserRole, pin: string) => { success: boolean; message?: string };
+  switchUser: (userId: string) => void;
+
+  // Printer State
+  printerConnected: boolean;
+  togglePrinterConnection: () => void;
 
   // Cart
   cart: CartItem[];
@@ -65,16 +84,95 @@ interface PosState {
   addCashMovement: (type: 'CASH_IN' | 'CASH_OUT', category: string, amount: number, note: string) => void;
 }
 
+const DEFAULT_USERS: UserProfile[] = [
+  {
+    id: 'usr-karyawan',
+    name: 'Budi (Kasir/Barista)',
+    role: 'KARYAWAN',
+    pin: '0000',
+  },
+  {
+    id: 'usr-owner',
+    name: 'Pak Hendra (Owner)',
+    role: 'OWNER',
+    pin: '1234',
+  },
+];
+
 export const usePosStore = create<PosState>((set, get) => ({
   currentScreen: 'DASHBOARD',
   tableNumber: '04',
   orderType: 'DINE_IN',
-  cashierName: 'Budi',
+  cashierName: 'Budi (Kasir)',
   selectedCategory: 'ALL',
   searchQuery: '',
 
+  // Products initialized with isAvailable = true
+  products: THREE_COFFEE_PRODUCTS.map((p) => ({ ...p, isAvailable: true })),
+
+  addProduct: (newProduct) => {
+    const id = `prod-cust-${Date.now()}`;
+    const productWithId: Product = { ...newProduct, id, isAvailable: true };
+    set((state) => ({ products: [productWithId, ...state.products] }));
+  },
+
+  updateProduct: (id, updates) => {
+    set((state) => ({
+      products: state.products.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }));
+  },
+
+  deleteProduct: (id) => {
+    set((state) => ({
+      products: state.products.filter((p) => p.id !== id),
+    }));
+  },
+
+  toggleProductAvailability: (id) => {
+    set((state) => ({
+      products: state.products.map((p) =>
+        p.id === id ? { ...p, isAvailable: !p.isAvailable } : p
+      ),
+    }));
+  },
+
+  // Auth & Roles
+  currentUser: DEFAULT_USERS[0],
+  availableUsers: DEFAULT_USERS,
+
+  loginUser: (role, pin) => {
+    const { availableUsers } = get();
+    const target = availableUsers.find((u) => u.role === role);
+    if (!target) return { success: false, message: 'User tidak ditemukan' };
+
+    if (target.pin === pin) {
+      set({
+        currentUser: target,
+        cashierName: target.name,
+      });
+      return { success: true };
+    }
+    return { success: false, message: `PIN salah! PIN default: ${role === 'OWNER' ? '1234' : '0000'}` };
+  },
+
+  switchUser: (userId) => {
+    const { availableUsers } = get();
+    const target = availableUsers.find((u) => u.id === userId);
+    if (target) {
+      set({
+        currentUser: target,
+        cashierName: target.name,
+      });
+    }
+  },
+
+  // Printer Simulation
+  printerConnected: true,
+  togglePrinterConnection: () => {
+    set((state) => ({ printerConnected: !state.printerConnected }));
+  },
+
   cart: [
-    // Default initial mock cart items matching our spec
     {
       cartItemId: 'prod-kps-arn-ICED-def-100%',
       product: THREE_COFFEE_PRODUCTS.find((p) => p.sku === 'KPS')!,
@@ -104,12 +202,40 @@ export const usePosStore = create<PosState>((set, get) => ({
   editingCartItem: null,
   isTableModalVisible: false,
 
-  completedOrders: [],
+  completedOrders: [
+    {
+      id: 'ord-init-01',
+      orderNumber: 'TRX-0127',
+      tableNumber: '02',
+      orderType: 'DINE_IN',
+      cashierName: 'Budi (Kasir)',
+      items: [
+        {
+          cartItemId: 'kps-init',
+          product: THREE_COFFEE_PRODUCTS.find((p) => p.sku === 'KPS')!,
+          quantity: 2,
+          unitPrice: 10000,
+          subtotal: 20000,
+          modifier: { temperature: 'ICED', sweetness: '100%' },
+        },
+      ],
+      subtotal: 20000,
+      total: 20000,
+      payment: {
+        method: 'QRIS_PHYSICAL',
+        amountDue: 20000,
+        amountReceived: 20000,
+        change: 0,
+        status: 'PAID',
+      },
+      timestamp: '14:20',
+    },
+  ],
   currentOrder: null,
 
   currentShift: {
     shiftId: 'SFT-20261116-01',
-    cashierName: 'Budi',
+    cashierName: 'Budi (Kasir)',
     openedAt: '08:00',
     openingCashFloat: 200000,
     cashSales: 1450000,
@@ -223,7 +349,7 @@ export const usePosStore = create<PosState>((set, get) => ({
   clearCart: () => set({ cart: [] }),
 
   processPayment: (payment) => {
-    const { cart, tableNumber, orderType, cashierName, currentShift, completedOrders } = get();
+    const { cart, tableNumber, orderType, currentUser, currentShift, completedOrders } = get();
     const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
     const orderNumber = `TRX-${Date.now().toString().slice(-4)}`;
 
@@ -232,7 +358,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       orderNumber,
       tableNumber,
       orderType,
-      cashierName,
+      cashierName: currentUser.name,
       items: [...cart],
       subtotal,
       total: subtotal,

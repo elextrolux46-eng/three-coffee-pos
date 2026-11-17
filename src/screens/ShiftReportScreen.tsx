@@ -323,26 +323,26 @@ export const ShiftReportScreen: React.FC = () => {
               </View>
             </View>
           </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionBtnRow}>
+            <TouchableOpacity style={styles.btnZReport} onPress={handlePrintZReport}>
+              <MaterialCommunityIcons name="printer" size={18} color="#FFFFFF" />
+              <Text style={styles.btnActionText}>Cetak Z-Report</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnWa} onPress={handleSendWaReport}>
+              <MaterialCommunityIcons name="whatsapp" size={18} color="#FFFFFF" />
+              <Text style={styles.btnActionText}>Kirim WA</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.btnCloseShift} onPress={handleCloseShift}>
+              <MaterialCommunityIcons name="lock-check" size={18} color="#FFFFFF" />
+              <Text style={styles.btnActionText}>Tutup Shift</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
-
-      {/* Bottom Sticky Action Buttons */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.btnZReport} onPress={handlePrintZReport}>
-          <MaterialCommunityIcons name="printer" size={18} color="#FFFFFF" />
-          <Text style={styles.btnActionText}>Cetak Z-Report (58mm)</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.btnWa} onPress={handleSendWaReport}>
-          <MaterialCommunityIcons name="whatsapp" size={18} color="#FFFFFF" />
-          <Text style={styles.btnActionText}>Kirim WA Owner</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.btnCloseShift} onPress={handleCloseShift}>
-          <MaterialCommunityIcons name="lock-check" size={18} color="#FFFFFF" />
-          <Text style={styles.btnActionText}>Tutup Shift</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Modal Add Movement */}
       <Modal visible={isModalOpen} transparent animationType="slide">
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 24,
   },
   omsetBanner: {
     flexDirection: 'row',
@@ -747,17 +747,11 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 1,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  actionBtnRow: {
     flexDirection: 'row',
     gap: 8,
-    padding: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
+    marginTop: 16,
+    width: '100%',
   },
   btnZReport: {
     flex: 1.2,
