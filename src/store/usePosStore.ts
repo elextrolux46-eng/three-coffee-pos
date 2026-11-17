@@ -33,6 +33,9 @@ interface PosState {
   availableUsers: UserProfile[];
   loginUser: (role: UserRole, pin: string) => { success: boolean; message?: string };
   switchUser: (userId: string) => void;
+  updateUser: (id: string, updates: Partial<UserProfile>) => void;
+  addAvailableUser: (user: Omit<UserProfile, 'id'>) => void;
+  deleteAvailableUser: (id: string) => void;
 
   // Printer State
   printerConnected: boolean;
@@ -164,6 +167,35 @@ export const usePosStore = create<PosState>((set, get) => ({
         cashierName: target.name,
       });
     }
+  },
+
+  updateUser: (id, updates) => {
+    set((state) => {
+      const updated = state.availableUsers.map((u) =>
+        u.id === id ? { ...u, ...updates } : u
+      );
+      const isCurrent = state.currentUser.id === id;
+      return {
+        availableUsers: updated,
+        currentUser: isCurrent ? { ...state.currentUser, ...updates } : state.currentUser,
+        cashierName:
+          isCurrent && updates.name ? updates.name : state.cashierName,
+      };
+    });
+  },
+
+  addAvailableUser: (userData) => {
+    const newUser: UserProfile = {
+      ...userData,
+      id: `usr-${Date.now()}`,
+    };
+    set((state) => ({ availableUsers: [...state.availableUsers, newUser] }));
+  },
+
+  deleteAvailableUser: (id) => {
+    set((state) => ({
+      availableUsers: state.availableUsers.filter((u) => u.id !== id),
+    }));
   },
 
   // Printer Simulation

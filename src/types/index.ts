@@ -11,6 +11,12 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   pin: string;
+  // Extended profile fields
+  phone?: string;
+  address?: string;
+  bankAccount?: string;
+  bankName?: string;
+  photoUri?: string;
 }
 
 export interface Product {

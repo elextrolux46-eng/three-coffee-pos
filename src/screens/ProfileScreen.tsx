@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Alert,
   Modal,
@@ -12,7 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePosStore } from '../store/usePosStore';
 import { COLORS } from '../constants/theme';
-import { UserRole } from '../types';
+import { UserProfile, UserRole } from '../types';
 import {
   openBluetoothSettings,
   openThermalPrinterApp,
@@ -25,6 +25,9 @@ export const ProfileScreen: React.FC = () => {
   const availableUsers = usePosStore((s) => s.availableUsers);
   const loginUser = usePosStore((s) => s.loginUser);
   const switchUser = usePosStore((s) => s.switchUser);
+  const updateUser = usePosStore((s) => s.updateUser);
+  const addAvailableUser = usePosStore((s) => s.addAvailableUser);
+  const deleteAvailableUser = usePosStore((s) => s.deleteAvailableUser);
   const printerConnected = usePosStore((s) => s.printerConnected);
   const togglePrinterConnection = usePosStore((s) => s.togglePrinterConnection);
   const setScreen = usePosStore((s) => s.setScreen);
@@ -33,6 +36,23 @@ export const ProfileScreen: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>('OWNER');
   const [pinInput, setPinInput] = useState('');
   const [btPermissionStatus, setBtPermissionStatus] = useState<string>('Periksa');
+
+  // ── Edit Profil Modal ──────────────────────────────────────────────
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editBankAccount, setEditBankAccount] = useState('');
+  const [editBankName, setEditBankName] = useState('');
+
+  // ── Manajemen Karyawan Modal (Owner only) ─────────────────────────
+  const [isKaryawanModalOpen, setIsKaryawanModalOpen] = useState(false);
+  const [editingKaryawan, setEditingKaryawan] = useState<null | typeof availableUsers[0]>(null);
+  const [karyawanName, setKaryawanName] = useState('');
+  const [karyawanPin, setKaryawanPin] = useState('');
+  const [karyawanPhone, setKaryawanPhone] = useState('');
+  const [showKaryawanPin, setShowKaryawanPin] = useState(false);
+  const [isAddKaryawan, setIsAddKaryawan] = useState(false);
 
   const isOwner = currentUser.role === 'OWNER';
 
@@ -50,6 +70,106 @@ export const ProfileScreen: React.FC = () => {
     } else {
       Alert.alert('Gagal', res.message || 'PIN salah!');
     }
+  };
+
+  // ── Edit Profil handlers ───────────────────────────────────────────
+  const handleOpenEditProfile = () => {
+    setEditName(currentUser.name);
+    setEditPhone(currentUser.phone || '');
+    setEditAddress(currentUser.address || '');
+    setEditBankAccount(currentUser.bankAccount || '');
+    setEditBankName(currentUser.bankName || '');
+    setIsEditProfileOpen(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editName.trim()) {
+      Alert.alert('Perhatian', 'Nama tidak boleh kosong.');
+      return;
+    }
+    updateUser(currentUser.id, {
+      name: editName.trim(),
+      phone: editPhone.trim(),
+      address: editAddress.trim(),
+      bankAccount: editBankAccount.trim(),
+      bankName: editBankName.trim(),
+    });
+    setIsEditProfileOpen(false);
+    Alert.alert('Berhasil', 'Profil berhasil diperbarui.');
+  };
+
+  // ── Manajemen Karyawan handlers (Owner only) ──────────────────────
+  const handleOpenEditKaryawan = (user: typeof availableUsers[0]) => {
+    setEditingKaryawan(user);
+    setKaryawanName(user.name);
+    setKaryawanPin('');
+    setKaryawanPhone(user.phone || '');
+    setShowKaryawanPin(false);
+    setIsAddKaryawan(false);
+    setIsKaryawanModalOpen(true);
+  };
+
+  const handleOpenAddKaryawan = () => {
+    setEditingKaryawan(null);
+    setKaryawanName('');
+    setKaryawanPin('');
+    setKaryawanPhone('');
+    setShowKaryawanPin(false);
+    setIsAddKaryawan(true);
+    setIsKaryawanModalOpen(true);
+  };
+
+  const handleSaveKaryawan = () => {
+    if (!karyawanName.trim()) {
+      Alert.alert('Perhatian', 'Nama karyawan tidak boleh kosong.');
+      return;
+    }
+    if (isAddKaryawan) {
+      if (!karyawanPin.trim() || karyawanPin.length < 4) {
+        Alert.alert('Perhatian', 'PIN minimal 4 digit.');
+        return;
+      }
+      addAvailableUser({
+        name: karyawanName.trim(),
+        role: 'KARYAWAN',
+        pin: karyawanPin.trim(),
+        phone: karyawanPhone.trim(),
+      });
+      Alert.alert('Berhasil', `Karyawan "${karyawanName.trim()}" berhasil ditambahkan.`);
+    } else if (editingKaryawan) {
+      const updates: Partial<typeof availableUsers[0]> = {
+        name: karyawanName.trim(),
+        phone: karyawanPhone.trim(),
+      };
+      if (karyawanPin.trim().length >= 4) {
+        updates.pin = karyawanPin.trim();
+      }
+      updateUser(editingKaryawan.id, updates);
+      Alert.alert('Berhasil', 'Data karyawan berhasil diperbarui.');
+    }
+    setIsKaryawanModalOpen(false);
+  };
+
+  const handleDeleteKaryawan = (user: typeof availableUsers[0]) => {
+    if (user.role === 'OWNER') {
+      Alert.alert('Tidak Bisa', 'Akun Owner tidak dapat dihapus.');
+      return;
+    }
+    Alert.alert(
+      'Hapus Karyawan',
+      `Hapus akun "${user.name}"? Tindakan ini tidak dapat dibatalkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: () => {
+            deleteAvailableUser(user.id);
+            Alert.alert('Dihapus', `Akun "${user.name}" telah dihapus.`);
+          },
+        },
+      ]
+    );
   };
 
   const handleRequestBtPermission = async () => {
@@ -107,6 +227,13 @@ export const ProfileScreen: React.FC = () => {
             <Text style={styles.userShiftText}>Status: Shift Aktif • POS Online</Text>
           </View>
         </View>
+
+        {/* Edit Profil Button */}
+        <TouchableOpacity style={styles.editProfileBtn} onPress={handleOpenEditProfile}>
+          <MaterialCommunityIcons name="account-edit-outline" size={18} color={COLORS.caramel} />
+          <Text style={styles.editProfileBtnText}>Edit Profil Saya</Text>
+          <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.muted} />
+        </TouchableOpacity>
 
         {/* Switch Account Section */}
         <View style={styles.card}>
@@ -228,6 +355,44 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </View>
         </View>
+
+        {/* Manajemen Karyawan - Owner Only */}
+        {isOwner && (
+          <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardTitle}>MANAJEMEN KARYAWAN</Text>
+              <TouchableOpacity style={styles.btnAddKaryawan} onPress={handleOpenAddKaryawan}>
+                <MaterialCommunityIcons name="account-plus" size={16} color="#FFFFFF" />
+                <Text style={styles.btnAddKaryawanText}>Tambah</Text>
+              </TouchableOpacity>
+            </View>
+            {availableUsers.map((u) => (
+              <View key={u.id} style={styles.karyawanRow}>
+                <View style={styles.karyawanLeft}>
+                  <MaterialCommunityIcons
+                    name={u.role === 'OWNER' ? 'shield-crown' : 'account-tie'}
+                    size={20}
+                    color={u.role === 'OWNER' ? '#059669' : COLORS.caramel}
+                  />
+                  <View>
+                    <Text style={styles.karyawanName}>{u.name}</Text>
+                    <Text style={styles.karyawanRole}>{u.role === 'OWNER' ? 'Owner' : 'Karyawan'} • {u.phone || 'No HP belum diisi'}</Text>
+                  </View>
+                </View>
+                <View style={styles.karyawanActions}>
+                  <TouchableOpacity style={styles.btnEditKaryawan} onPress={() => handleOpenEditKaryawan(u)}>
+                    <MaterialCommunityIcons name="pencil" size={14} color={COLORS.caramel} />
+                  </TouchableOpacity>
+                  {u.role !== 'OWNER' && (
+                    <TouchableOpacity style={styles.btnDeleteKaryawan} onPress={() => handleDeleteKaryawan(u)}>
+                      <MaterialCommunityIcons name="trash-can-outline" size={14} color="#DC2626" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Bluetooth Thermal Printer Section */}
         <View style={styles.card}>
@@ -351,6 +516,88 @@ export const ProfileScreen: React.FC = () => {
           <Text style={styles.shopBankItem}>• BRI: 0123-01-000456-53-1 a.n. Three Coffee</Text>
         </View>
       </ScrollView>
+
+      {/* Modal Edit Profil */}
+      <Modal visible={isEditProfileOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { maxWidth: 360 }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitleLg}>Edit Profil</Text>
+              <TouchableOpacity onPress={() => setIsEditProfileOpen(false)}>
+                <MaterialCommunityIcons name="close" size={22} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.fieldLabel}>Nama Lengkap *</Text>
+              <TextInput style={styles.fieldInput} value={editName} onChangeText={setEditName} placeholder="Nama" />
+              <Text style={styles.fieldLabel}>Nomor HP / WhatsApp</Text>
+              <TextInput style={styles.fieldInput} value={editPhone} onChangeText={setEditPhone} placeholder="08xx-xxxx-xxxx" keyboardType="phone-pad" />
+              <Text style={styles.fieldLabel}>Alamat</Text>
+              <TextInput style={[styles.fieldInput, { height: 72, textAlignVertical: 'top' }]} value={editAddress} onChangeText={setEditAddress} placeholder="Alamat lengkap" multiline />
+              <Text style={styles.fieldLabel}>Nama Bank</Text>
+              <TextInput style={styles.fieldInput} value={editBankName} onChangeText={setEditBankName} placeholder="BCA / Mandiri / BRI ..." />
+              <Text style={styles.fieldLabel}>Nomor Rekening</Text>
+              <TextInput style={styles.fieldInput} value={editBankAccount} onChangeText={setEditBankAccount} placeholder="Nomor rekening" keyboardType="number-pad" />
+            </ScrollView>
+            <View style={[styles.modalBtnRow, { marginTop: 14 }]}>
+              <TouchableOpacity style={styles.btnModalCancel} onPress={() => setIsEditProfileOpen(false)}>
+                <Text style={styles.btnModalCancelText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnModalSave} onPress={handleSaveProfile}>
+                <Text style={styles.btnModalSaveText}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Manajemen Karyawan - Owner Only */}
+      <Modal visible={isKaryawanModalOpen} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { maxWidth: 360 }]}>
+            <View style={styles.modalHeaderRow}>
+              <Text style={styles.modalTitleLg}>
+                {isAddKaryawan ? 'Tambah Karyawan' : 'Edit Karyawan'}
+              </Text>
+              <TouchableOpacity onPress={() => setIsKaryawanModalOpen(false)}>
+                <MaterialCommunityIcons name="close" size={22} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.fieldLabel}>Nama Karyawan *</Text>
+            <TextInput style={styles.fieldInput} value={karyawanName} onChangeText={setKaryawanName} placeholder="Nama lengkap" />
+            <Text style={styles.fieldLabel}>Nomor HP</Text>
+            <TextInput style={styles.fieldInput} value={karyawanPhone} onChangeText={setKaryawanPhone} placeholder="08xx-xxxx-xxxx" keyboardType="phone-pad" />
+            <Text style={styles.fieldLabel}>
+              {isAddKaryawan ? 'PIN (min 4 digit) *' : 'PIN Baru (kosongkan jika tidak diganti)'}
+            </Text>
+            <View style={styles.pinFieldRow}>
+              <TextInput
+                style={[styles.fieldInput, { flex: 1 }]}
+                value={karyawanPin}
+                onChangeText={setKaryawanPin}
+                placeholder={isAddKaryawan ? '••••' : 'Biarkan kosong = tidak berubah'}
+                secureTextEntry={!showKaryawanPin}
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <TouchableOpacity style={styles.btnTogglePin} onPress={() => setShowKaryawanPin(!showKaryawanPin)}>
+                <MaterialCommunityIcons name={showKaryawanPin ? 'eye-off' : 'eye'} size={20} color={COLORS.muted} />
+              </TouchableOpacity>
+            </View>
+            {!isAddKaryawan && (
+              <Text style={styles.pinHintText}>⚠ PIN ditampilkan hanya saat Edit. Jangan bagikan ke karyawan lain.</Text>
+            )}
+            <View style={[styles.modalBtnRow, { marginTop: 14 }]}>
+              <TouchableOpacity style={styles.btnModalCancel} onPress={() => setIsKaryawanModalOpen(false)}>
+                <Text style={styles.btnModalCancelText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnModalSave} onPress={handleSaveKaryawan}>
+                <Text style={styles.btnModalSaveText}>{isAddKaryawan ? 'Tambah' : 'Simpan'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal Input PIN Login */}
       <Modal visible={isLoginModalOpen} transparent animationType="fade">
@@ -850,5 +1097,121 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+
+  // Edit Profil & Karyawan
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginBottom: 10,
+  },
+  editProfileBtnText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.darkRoast,
+  },
+  btnAddKaryawan: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.caramel,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  btnAddKaryawanText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  karyawanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  karyawanLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  karyawanName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.darkRoast,
+  },
+  karyawanRole: {
+    fontSize: 10,
+    color: COLORS.muted,
+    marginTop: 1,
+  },
+  karyawanActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  btnEditKaryawan: {
+    backgroundColor: '#FEF3C7',
+    padding: 7,
+    borderRadius: 8,
+  },
+  btnDeleteKaryawan: {
+    backgroundColor: '#FEE2E2',
+    padding: 7,
+    borderRadius: 8,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  modalTitleLg: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.darkRoast,
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 5,
+    marginTop: 10,
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: COLORS.darkRoast,
+    backgroundColor: '#FAFAFA',
+  },
+  pinFieldRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnTogglePin: {
+    padding: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+  },
+  pinHintText: {
+    fontSize: 10,
+    color: '#D97706',
+    marginTop: 6,
+    fontStyle: 'italic',
   },
 });
