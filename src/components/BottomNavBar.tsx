@@ -9,6 +9,8 @@ import { ScreenType } from '../types';
 export const BottomNavBar: React.FC = () => {
   const currentScreen = usePosStore((s) => s.currentScreen);
   const setScreen = usePosStore((s) => s.setScreen);
+  const currentUser = usePosStore((s) => s.currentUser);
+  const isOwner = currentUser.role === 'OWNER';
 
   // Hidden when on landscape terminal or payment checkout flow
   if (currentScreen === 'POS_ORDER' || currentScreen === 'PAYMENT') {
@@ -24,14 +26,6 @@ export const BottomNavBar: React.FC = () => {
     setScreen('POS_ORDER');
   };
 
-  const navItems: { screen: ScreenType; label: string; icon: keyof typeof MaterialCommunityIcons.glyphMap }[] = [
-    { screen: 'DASHBOARD', label: 'Home', icon: 'home-variant' },
-    { screen: 'CUSTOM_MENU', label: 'Custom Menu', icon: 'coffee-outline' },
-    // Center button is Kasir (custom rendered)
-    { screen: 'RECEIPT', label: 'Riwayat', icon: 'receipt-text-outline' },
-    { screen: 'PROFILE', label: 'Profil', icon: 'account-circle-outline' },
-  ];
-
   return (
     <View style={styles.wrapper}>
       {/* Tab 1: Home */}
@@ -41,17 +35,12 @@ export const BottomNavBar: React.FC = () => {
         activeOpacity={0.7}
       >
         <MaterialCommunityIcons
-          name={navItems[0].icon}
+          name="home-variant"
           size={24}
           color={currentScreen === 'DASHBOARD' ? '#0284C7' : '#8C827A'}
         />
-        <Text
-          style={[
-            styles.tabLabel,
-            currentScreen === 'DASHBOARD' && styles.tabLabelActive,
-          ]}
-        >
-          {navItems[0].label}
+        <Text style={[styles.tabLabel, currentScreen === 'DASHBOARD' && styles.tabLabelActive]}>
+          Home
         </Text>
       </TouchableOpacity>
 
@@ -62,17 +51,12 @@ export const BottomNavBar: React.FC = () => {
         activeOpacity={0.7}
       >
         <MaterialCommunityIcons
-          name={navItems[1].icon}
+          name="coffee-outline"
           size={24}
           color={currentScreen === 'CUSTOM_MENU' ? '#0284C7' : '#8C827A'}
         />
-        <Text
-          style={[
-            styles.tabLabel,
-            currentScreen === 'CUSTOM_MENU' && styles.tabLabelActive,
-          ]}
-        >
-          {navItems[1].label}
+        <Text style={[styles.tabLabel, currentScreen === 'CUSTOM_MENU' && styles.tabLabelActive]}>
+          Menu
         </Text>
       </TouchableOpacity>
 
@@ -88,26 +72,38 @@ export const BottomNavBar: React.FC = () => {
         <Text style={styles.floatingLabel}>Kasir</Text>
       </View>
 
-      {/* Tab 4: Riwayat Struk */}
-      <TouchableOpacity
-        style={styles.tabBtn}
-        onPress={() => setScreen('RECEIPT')}
-        activeOpacity={0.7}
-      >
-        <MaterialCommunityIcons
-          name={navItems[2].icon}
-          size={24}
-          color={currentScreen === 'RECEIPT' ? '#0284C7' : '#8C827A'}
-        />
-        <Text
-          style={[
-            styles.tabLabel,
-            currentScreen === 'RECEIPT' && styles.tabLabelActive,
-          ]}
+      {/* Tab 4: Bluetooth (Owner only) OR Riwayat (Karyawan) */}
+      {isOwner ? (
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setScreen('BLUETOOTH_SETTINGS')}
+          activeOpacity={0.7}
         >
-          {navItems[2].label}
-        </Text>
-      </TouchableOpacity>
+          <MaterialCommunityIcons
+            name="bluetooth"
+            size={24}
+            color={currentScreen === 'BLUETOOTH_SETTINGS' ? '#0284C7' : '#8C827A'}
+          />
+          <Text style={[styles.tabLabel, currentScreen === 'BLUETOOTH_SETTINGS' && styles.tabLabelActive]}>
+            Bluetooth
+          </Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity
+          style={styles.tabBtn}
+          onPress={() => setScreen('RECEIPT')}
+          activeOpacity={0.7}
+        >
+          <MaterialCommunityIcons
+            name="receipt-text-outline"
+            size={24}
+            color={currentScreen === 'RECEIPT' ? '#0284C7' : '#8C827A'}
+          />
+          <Text style={[styles.tabLabel, currentScreen === 'RECEIPT' && styles.tabLabelActive]}>
+            Riwayat
+          </Text>
+        </TouchableOpacity>
+      )}
 
       {/* Tab 5: Profil */}
       <TouchableOpacity
@@ -116,17 +112,12 @@ export const BottomNavBar: React.FC = () => {
         activeOpacity={0.7}
       >
         <MaterialCommunityIcons
-          name={navItems[3].icon}
+          name="account-circle-outline"
           size={24}
           color={currentScreen === 'PROFILE' ? '#0284C7' : '#8C827A'}
         />
-        <Text
-          style={[
-            styles.tabLabel,
-            currentScreen === 'PROFILE' && styles.tabLabelActive,
-          ]}
-        >
-          {navItems[3].label}
+        <Text style={[styles.tabLabel, currentScreen === 'PROFILE' && styles.tabLabelActive]}>
+          Profil
         </Text>
       </TouchableOpacity>
     </View>

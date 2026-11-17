@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Modal,
@@ -228,12 +228,14 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Edit Profil Button */}
+        {/* Edit Profil Button - Owner Only */}
+        {isOwner && (
         <TouchableOpacity style={styles.editProfileBtn} onPress={handleOpenEditProfile}>
           <MaterialCommunityIcons name="account-edit-outline" size={18} color={COLORS.caramel} />
           <Text style={styles.editProfileBtnText}>Edit Profil Saya</Text>
           <MaterialCommunityIcons name="chevron-right" size={18} color={COLORS.muted} />
         </TouchableOpacity>
+        )}
 
         {/* Switch Account Section */}
         <View style={styles.card}>
@@ -261,7 +263,7 @@ export const ProfileScreen: React.FC = () => {
                   Pak Hendra (Owner)
                 </Text>
                 <Text style={[styles.roleSwitchSub, isOwner && styles.roleSwitchSubActive]}>
-                  PIN: 1234 • Akses Penuh
+                  Akses Penuh • Akses Penuh
                 </Text>
               </View>
               {isOwner && (
@@ -287,7 +289,7 @@ export const ProfileScreen: React.FC = () => {
                   Budi (Kasir / Barista)
                 </Text>
                 <Text style={[styles.roleSwitchSub, !isOwner && styles.roleSwitchSubActive]}>
-                  PIN: 0000 • Kasir Operasional
+                  Kasir • Kasir Operasional
                 </Text>
               </View>
               {!isOwner && (
@@ -493,6 +495,18 @@ export const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* BT Shortcut - Owner Only */}
+        {isOwner && (
+          <TouchableOpacity
+            style={[styles.shiftReportShortcut, { backgroundColor: "#0284C7", marginBottom: 8 }]}
+            onPress={() => setScreen("BLUETOOTH_SETTINGS")}
+          >
+            <MaterialCommunityIcons name="bluetooth" size={20} color="#FFFFFF" />
+            <Text style={styles.shiftReportShortcutText}>Pengaturan Bluetooth Printer</Text>
+            <MaterialCommunityIcons name="chevron-right" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
 
         {/* Shortcut to Shift Report */}
         <TouchableOpacity

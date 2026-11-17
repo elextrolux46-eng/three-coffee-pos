@@ -10,6 +10,7 @@ import { PaymentScreen } from './src/screens/PaymentScreen';
 import { ReceiptScreen } from './src/screens/ReceiptScreen';
 import { ShiftReportScreen } from './src/screens/ShiftReportScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
+import { BluetoothSettingsScreen } from './src/screens/BluetoothSettingsScreen';
 import { CustomizerModal } from './src/screens/CustomizerModal';
 import { QrisModal } from './src/components/QrisModal';
 import { BottomNavBar } from './src/components/BottomNavBar';
@@ -33,6 +34,8 @@ export default function App() {
         return <ShiftReportScreen />;
       case 'PROFILE':
         return <ProfileScreen />;
+      case 'BLUETOOTH_SETTINGS':
+        return <BluetoothSettingsScreen />;
       default:
         return <DashboardScreen />;
     }

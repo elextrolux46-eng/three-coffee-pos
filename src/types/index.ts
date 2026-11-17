@@ -102,4 +102,5 @@ export type ScreenType =
   | 'PAYMENT'
   | 'RECEIPT'
   | 'SHIFT_REPORT'
-  | 'PROFILE';
+  | 'PROFILE'
+  | 'BLUETOOTH_SETTINGS';
