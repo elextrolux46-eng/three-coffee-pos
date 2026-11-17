@@ -13,6 +13,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePosStore } from '../store/usePosStore';
 import { COLORS } from '../constants/theme';
 import { UserRole } from '../types';
+import {
+  openBluetoothSettings,
+  openThermalPrinterApp,
+  printThermalViaRawBt,
+  requestBluetoothPermission,
+} from '../utils/deviceIntegration';
 
 export const ProfileScreen: React.FC = () => {
   const currentUser = usePosStore((s) => s.currentUser);
@@ -26,6 +32,7 @@ export const ProfileScreen: React.FC = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>('OWNER');
   const [pinInput, setPinInput] = useState('');
+  const [btPermissionStatus, setBtPermissionStatus] = useState<string>('Periksa');
 
   const isOwner = currentUser.role === 'OWNER';
 
@@ -45,15 +52,20 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
-  const handleTestPrint = () => {
-    if (!printerConnected) {
-      Alert.alert('Printer Terputus', 'Silakan sambungkan printer Bluetooth terlebih dahulu.');
-      return;
-    }
+  const handleRequestBtPermission = async () => {
+    const res = await requestBluetoothPermission();
+    setBtPermissionStatus(res.granted ? 'Diizinkan' : 'Ditolak');
     Alert.alert(
-      'Simulasi Cetak Berhasil',
-      'Printer thermal Bluetooth 58mm mencetak test halaman Three Coffee POS.\n\nStatus: ESC/POS OK.'
+      res.granted ? 'Izin Bluetooth Aktif' : 'Izin Bluetooth Ditolak',
+      res.message
     );
+  };
+
+  const handleTestPrint = async () => {
+    const testSlip = `================================\n          THREE COFFEE          \n     TEST PRINT THERMAL 58MM    \n================================\nWaktu : ${new Date().toLocaleTimeString('id-ID')} WIB\nPrinter: Panda PRJ-58D / ESC-POS\nStatus : KONEKSI BLUETOOTH OK\n================================\n   TERIMA KASIH - THREE COFFEE  \n================================\n\n\n`;
+    await printThermalViaRawBt(testSlip, () => {
+      // fallback alert
+    });
   };
 
   return (
@@ -220,7 +232,12 @@ export const ProfileScreen: React.FC = () => {
         {/* Bluetooth Thermal Printer Section */}
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.cardTitle}>PRINTER BLUETOOTH THERMAL</Text>
+            <View>
+              <Text style={styles.cardTitle}>PRINTER BLUETOOTH THERMAL</Text>
+              <Text style={styles.printerDeviceName}>
+                Panda PRJ-58D / RPP02N (58mm ESC/POS)
+              </Text>
+            </View>
             <View
               style={[
                 styles.printerStatusPill,
@@ -239,10 +256,52 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </View>
 
-          <Text style={styles.printerDeviceName}>
-            Perangkat Default: Panda PRJ-58D / RPP02N (58mm ESC/POS)
-          </Text>
+          {/* Quick Access to Bluetooth & Thermal App */}
+          <View style={styles.quickDeviceRow}>
+            {/* Request Permission Button */}
+            <TouchableOpacity
+              style={styles.btnPerm}
+              onPress={handleRequestBtPermission}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="shield-check-outline" size={16} color={COLORS.darkRoast} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.btnPermTitle}>Izin Bluetooth</Text>
+                <Text style={styles.btnPermSub}>Status: {btPermissionStatus}</Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={16} color={COLORS.muted} />
+            </TouchableOpacity>
 
+            {/* Direct Open Bluetooth Settings Android */}
+            <TouchableOpacity
+              style={styles.btnDeviceAction}
+              onPress={openBluetoothSettings}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="bluetooth-settings" size={18} color="#0284C7" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.btnDeviceTitle}>Pengaturan Bluetooth HP</Text>
+                <Text style={styles.btnDeviceSub}>Pairing / Hubungkan perangkat printer</Text>
+              </View>
+              <MaterialCommunityIcons name="arrow-top-right-thin-circle-outline" size={18} color="#0284C7" />
+            </TouchableOpacity>
+
+            {/* Direct Open Thermal Bluetooth App (RawBT) */}
+            <TouchableOpacity
+              style={styles.btnThermalApp}
+              onPress={openThermalPrinterApp}
+              activeOpacity={0.8}
+            >
+              <MaterialCommunityIcons name="printer-pos-star" size={18} color="#D97706" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.btnThermalTitle}>Buka Aplikasi Thermal Printer</Text>
+                <Text style={styles.btnThermalSub}>Driver RawBT / ESC-POS 58mm Service</Text>
+              </View>
+              <MaterialCommunityIcons name="arrow-top-right-thin-circle-outline" size={18} color="#D97706" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Printer Control Row */}
           <View style={styles.printerBtnRow}>
             <TouchableOpacity
               style={styles.btnTogglePrinter}
@@ -562,6 +621,73 @@ const styles = StyleSheet.create({
   printerBtnRow: {
     flexDirection: 'row',
     gap: 10,
+    marginTop: 10,
+  },
+  quickDeviceRow: {
+    gap: 8,
+    marginVertical: 10,
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  btnPerm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  btnPermTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.darkRoast,
+  },
+  btnPermSub: {
+    fontSize: 10,
+    color: COLORS.muted,
+  },
+  btnDeviceAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  btnDeviceTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0369A1',
+  },
+  btnDeviceSub: {
+    fontSize: 10,
+    color: '#0284C7',
+  },
+  btnThermalApp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  btnThermalTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  btnThermalSub: {
+    fontSize: 10,
+    color: '#D97706',
   },
   btnTogglePrinter: {
     flex: 1,

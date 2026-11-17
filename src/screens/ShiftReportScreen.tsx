@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 import { usePosStore } from '../store/usePosStore';
+import { sendToWhatsApp, printThermalViaRawBt } from '../utils/deviceIntegration';
 
 export const ShiftReportScreen: React.FC = () => {
   const setScreen = usePosStore((s) => s.setScreen);
@@ -62,17 +63,59 @@ export const ShiftReportScreen: React.FC = () => {
     Alert.alert('Sukses', 'Mutasi kas berhasil dicatat!');
   };
 
-  const handlePrintZReport = () => {
-    Alert.alert(
-      'Printer Bluetooth ESC/POS',
-      'Mencetak Laporan Z-Report Tutup Shift ke Printer Kasir 58mm... Berhasil!'
-    );
+  const handlePrintZReport = async () => {
+    const now = new Date();
+    const timeStr = now.toLocaleString('id-ID');
+    const zReportText =
+      `================================\n` +
+      `     THREE COFFEE - Z REPORT    \n` +
+      `================================\n` +
+      `Shift ID : ${currentShift.shiftId}\n` +
+      `Kasir    : ${currentShift.cashierName}\n` +
+      `Cetak    : ${timeStr}\n` +
+      `--------------------------------\n` +
+      `RINGKASAN PENJUALAN\n` +
+      `Tunai    : Rp ${currentShift.cashSales.toLocaleString('id-ID')}\n` +
+      `QRIS     : Rp ${currentShift.qrisSales.toLocaleString('id-ID')}\n` +
+      `Transfer : Rp ${currentShift.bankTransferSales.toLocaleString('id-ID')}\n` +
+      `Total    : Rp ${totalOmset.toLocaleString('id-ID')}\n` +
+      `Trx      : ${currentShift.totalTransactions}\n` +
+      `--------------------------------\n` +
+      `REKAP KAS LACI\n` +
+      `Modal Awal : Rp ${currentShift.openingCashFloat.toLocaleString('id-ID')}\n` +
+      `Kas Keluar : Rp ${totalCashOut.toLocaleString('id-ID')}\n` +
+      `Seharusnya : Rp ${expectedCashInDrawer.toLocaleString('id-ID')}\n` +
+      `Fisik      : Rp ${physicalCash.toLocaleString('id-ID')}\n` +
+      `Selisih    : Rp ${variance.toLocaleString('id-ID')} (${variance === 0 ? 'COCOK' : variance > 0 ? 'LEBIH' : 'KURANG'})\n` +
+      `================================\n` +
+      `  Powered by Three Coffee POS   \n` +
+      `================================\n`;
+    await printThermalViaRawBt(zReportText, () => {
+      Alert.alert('Info', 'Aplikasi printer belum terpasang. Pasang RawBT dari Play Store.');
+    });
   };
 
-  const handleSendWaReport = () => {
-    const waText = `*LAPORAN TUTUP SHIFT - THREE COFFEE*\n--------------------------------\nShift ID: ${currentShift.shiftId}\nKasir: ${currentShift.cashierName}\nBuka: ${currentShift.openedAt} WIB\n\n*1. RINGKASAN PENJUALAN*\n- Tunai: Rp ${currentShift.cashSales.toLocaleString('id-ID')}\n- QRIS Fisik: Rp ${currentShift.qrisSales.toLocaleString('id-ID')}\n- Transfer Bank: Rp ${currentShift.bankTransferSales.toLocaleString('id-ID')}\n*Total Omset: Rp ${totalOmset.toLocaleString('id-ID')}* (${currentShift.totalTransactions} Trx)\n\n*2. REKAP KAS LACI*\n- Modal Awal: Rp ${currentShift.openingCashFloat.toLocaleString('id-ID')}\n- Kas Keluar (Petty): Rp ${totalCashOut.toLocaleString('id-ID')}\n- Kas Seharusnya: Rp ${expectedCashInDrawer.toLocaleString('id-ID')}\n- Kas Fisik Dihitung: Rp ${physicalCash.toLocaleString('id-ID')}\n- Selisih: Rp ${variance.toLocaleString('id-ID')} (${variance === 0 ? 'COCOK' : variance > 0 ? 'LEBIH' : 'KURANG'})\n--------------------------------\n_Laporan otomatis sistem POS Three Coffee_`;
-
-    Alert.alert('Kirim Format Laporan WhatsApp', waText);
+  const handleSendWaReport = async () => {
+    const waText =
+      `*LAPORAN TUTUP SHIFT - THREE COFFEE*\n` +
+      `--------------------------------\n` +
+      `Shift ID: ${currentShift.shiftId}\n` +
+      `Kasir: ${currentShift.cashierName}\n` +
+      `Buka: ${currentShift.openedAt} WIB\n\n` +
+      `*1. RINGKASAN PENJUALAN*\n` +
+      `- Tunai: Rp ${currentShift.cashSales.toLocaleString('id-ID')}\n` +
+      `- QRIS Fisik: Rp ${currentShift.qrisSales.toLocaleString('id-ID')}\n` +
+      `- Transfer Bank: Rp ${currentShift.bankTransferSales.toLocaleString('id-ID')}\n` +
+      `*Total Omset: Rp ${totalOmset.toLocaleString('id-ID')}* (${currentShift.totalTransactions} Trx)\n\n` +
+      `*2. REKAP KAS LACI*\n` +
+      `- Modal Awal: Rp ${currentShift.openingCashFloat.toLocaleString('id-ID')}\n` +
+      `- Kas Keluar (Petty): Rp ${totalCashOut.toLocaleString('id-ID')}\n` +
+      `- Kas Seharusnya: Rp ${expectedCashInDrawer.toLocaleString('id-ID')}\n` +
+      `- Kas Fisik Dihitung: Rp ${physicalCash.toLocaleString('id-ID')}\n` +
+      `- Selisih: Rp ${variance.toLocaleString('id-ID')} (${variance === 0 ? 'COCOK' : variance > 0 ? 'LEBIH' : 'KURANG'})\n` +
+      `--------------------------------\n` +
+      `_Laporan otomatis sistem POS Three Coffee_`;
+    await sendToWhatsApp(waText);
   };
 
   const handleCloseShift = () => {

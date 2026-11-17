@@ -11,6 +11,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { COLORS } from '../constants/theme';
 import { usePosStore } from '../store/usePosStore';
+import {
+  sendToWhatsApp,
+  printThermalViaRawBt,
+} from '../utils/deviceIntegration';
 
 export const ReceiptScreen: React.FC = () => {
   const setScreen = usePosStore((s) => s.setScreen);
@@ -21,23 +25,37 @@ export const ReceiptScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ALL' | 'BARISTA' | 'CUSTOMER'>('ALL');
   const [printStatus, setPrintStatus] = useState<string | null>(null);
 
-  const handlePrintBarista = () => {
-    setPrintStatus('Mencetak Tiket Barista via Bluetooth (58mm)...');
-    setTimeout(() => {
+  const handlePrintBarista = async () => {
+    if (!order) return;
+    const baristaSlip = `================================\n      THREE COFFEE - BARISTA    \n       BAR ORDER SLIP (58mm)    \n================================\nNO ORDER : ${order.orderNumber}\nMEJA     : ${order.tableNumber} (${order.orderType})\nWAKTU    : ${order.timestamp}\n================================\nDETAIL ITEM & MODIFIER:\n${order.items.map((i) => {
+      const mods = [
+        `  Suhu: ${i.modifier.temperature}`,
+        i.modifier.strength ? `  Espresso: ${i.modifier.strength}` : null,
+        `  Gula: ${i.modifier.sweetness}`,
+        i.modifier.notes ? `  Catatan: "${i.modifier.notes}"` : null,
+      ].filter(Boolean).join('\n');
+      return `${i.quantity}x ${i.product.name}\n${mods}`;
+    }).join('\n---\n')}
+================================\n       -- SIAPKAN SEGERA --      \n================================\n\n\n`;
+
+    await printThermalViaRawBt(baristaSlip, () => {
       setPrintStatus(null);
-      Alert.alert('Printer Barista', 'Tiket Barista berhasil dicetak (ESC/POS 58mm)!');
-    }, 1000);
+    });
   };
 
-  const handlePrintCustomer = () => {
-    setPrintStatus('Mencetak Struk Kasir via Bluetooth (58mm)...');
-    setTimeout(() => {
+  const handlePrintCustomer = async () => {
+    if (!order) return;
+    const customerSlip = `================================\n          THREE COFFEE          \n   Jl. Kopi Sejahtera No. 3     \n   WA: 0812-3456-7890           \n================================\nNo. Struk : ${order.orderNumber}\nKasir     : ${order.cashierName}\nMeja      : ${order.tableNumber}\nWaktu     : ${order.timestamp}\n================================\n${order.items.map((i) =>
+      `${i.quantity}x ${i.product.name}\n   Rp ${i.unitPrice.toLocaleString('id-ID')} x ${i.quantity} = Rp ${i.subtotal.toLocaleString('id-ID')}`
+    ).join('\n')}
+--------------------------------\nTOTAL    : Rp ${order.total.toLocaleString('id-ID')}\nMetode   : ${order.payment.method}\nDibayar  : Rp ${order.payment.amountReceived.toLocaleString('id-ID')}\nKembali  : Rp ${order.payment.change.toLocaleString('id-ID')}\n================================\n   Terima Kasih Atas Kunjungan  \n   Follow IG: @threecoffee.id  \n================================\n\n\n`;
+
+    await printThermalViaRawBt(customerSlip, () => {
       setPrintStatus(null);
-      Alert.alert('Printer Kasir', 'Struk Pelanggan berhasil dicetak!');
-    }, 1000);
+    });
   };
 
-  const handleSendWa = () => {
+  const handleSendWa = async () => {
     if (!order) return;
     const itemsText = order.items
       .map((i) => `- ${i.quantity}x ${i.product.name} (Rp ${i.subtotal.toLocaleString('id-ID')})`)
@@ -45,7 +63,8 @@ export const ReceiptScreen: React.FC = () => {
 
     const waMessage = `*THREE COFFEE*\nStruk Pembayaran #${order.orderNumber}\nTanggal: ${order.timestamp}\nMeja: ${order.tableNumber} (${order.orderType})\n------------------------\n${itemsText}\n------------------------\n*Total: Rp ${order.total.toLocaleString('id-ID')}*\nMetode: ${order.payment.method}\nTerima kasih telah berkunjung ke Three Coffee!`;
 
-    Alert.alert('Bagikan Struk WhatsApp', waMessage);
+    // Open WhatsApp directly (native app → web fallback)
+    await sendToWhatsApp(waMessage);
   };
 
   const handleNewOrder = async () => {
